@@ -2,14 +2,10 @@
 #include <iostream>
 using namespace std;
 
-//test of the graph class
+//here you can use the graph class as you want!!!
 
 int main(){
-	graph g(5, false);
+	graph g(5, true);
 	g.fromPrompt();
-	BestPathResult *result = g.bestPath(0);
-	result->show();
-	g.showInfo();
-	g.print();
-	return 0;
+	g.dijskra(0);
 }

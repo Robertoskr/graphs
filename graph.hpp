@@ -1,6 +1,7 @@
 #include<iostream>
 #include "unionfind.hpp"
 #include "minheap.hpp"
+#include <queue>
 using namespace std;
 
 
@@ -22,7 +23,7 @@ struct cell{
 	int cost;
 	int parent;
 };
-
+//used as result in besPath(int target); method
 class BestPathResult{
     public:
         BestPathResult(int _n);
@@ -86,7 +87,11 @@ class graph{
 		BestPathResult* bestPath(int target); //driver and entry function for the traveling salesman problem
 		void showInfo(); //show the information obtained in other algorithms to the prompt
         void fromPrompt(); //create a new graph with info from the prompt line (cmd)
-    private:
+		void bfs(int start); //the bfs graph algorithm
+		void processEdgeAfter(edgenode *actual); //process an edge after the traversal of the edge in bfs and dfs
+		void processEdgeBefore(edgenode *actual); //process an edge before the traversal of the edge in the bfs and dfs
+		void unweightedPath(int from, int to);
+	private:
         BestPathResult* _bestPath(int target, int start, bool *visited); //the actual logic of traveling salesman problem
         bool* newVisited(bool old[], int pos); //return a new visited array, used for traversing a new time int the _bestPath() function
 		bool allVisited(bool *visited); //return if a visited array is full (if is full is visited == true)
@@ -105,7 +110,6 @@ class graph{
 		bool intree[1000];
 		int time = 0; //used for dfs or bfs
 		bool directed;
-
 };
 
 graph::graph(int n, bool _directed = true){ //ask the number of vertices for initialization
@@ -151,6 +155,53 @@ void graph::print(){
 	}
 }
 
+void processEdgeAfter(edgenode *actual){
+	//this function is free to customize depending of your neecesity
+	return;
+}
+
+void processEdgeBefore(edgenode *actual){
+	//this function is free to customize depenfing of your needings
+	return;
+}
+
+void graph::bfs(int start){
+	queue<int> q;
+	edgenode *actual;
+	q.push(start);
+	int actualvertice;
+	while(!q.empty()){
+		actualvertice = q.front();
+		discovered[actualvertice] = true;
+		q.pop();
+		actual = edges[actualvertice];
+		//processEdgeBefore(actual);
+		while(actual != NULL){ //traverse on the actual node;
+			if(!discovered[actual->y]){
+				q.push(actual->y);
+				parent[actual->y] = actualvertice;
+			}
+			actual = actual->next;
+		}
+		//processEdgeAfter(actual);
+		processed[actualvertice] = true;
+	}
+}
+
+void graph::unweightedPath(int from, int to){
+	bfs(from);
+	int actual = to;
+	while(actual != from){
+		if(actual == -1)
+			cout << "theres isnt a path from " << from << " to " << to << endl;
+		cout << actual << endl;
+		actual = parent[actual];
+	}
+	if(actual != -1)
+		cout << actual << endl;
+}
+
+
 void graph::dfs(int start){
 	edgenode *p;
 	edgenode *tmp;
@@ -160,14 +211,16 @@ void graph::dfs(int start){
 	time++;
 	if(p != NULL){
 		tmp = p;
-		while(tmp != NULL){
-			if(!discovered[tmp->y]){
+		while(tmp != NULL){ //traverse all the edges of this vertex (start)
+			if(!discovered[tmp->y]){ //if not discovered go and discover this vertex (dfs(tmp->y))
+				//processEdgeAfter(tmp);
 				parent[tmp->y] = start; 
 				dfs(tmp->y);
 			}
 			tmp = tmp->next;
 		}
 	}
+	//processEdgeBefore(tmp);
 	processed[start] = true;
 	exit[start] = time;
 }
@@ -190,7 +243,7 @@ void graph::dijskra(int from){
 			}
 			p = p->next;
 		}
-		v = heap.pop()[0];
+		v = heap.pop()[0]; //the next less cost edge;
 	}
 }
 
@@ -201,12 +254,16 @@ int graph::kruskal(){
 	//a strage structure of nodes and pointers, lets spend nlogn for sorting it and then linear time for creating the minimum spanning tree
 	vector<vector<int>> edg = tovector();
 	sort(edg.begin(), edg.end(), &edgecompare);
-	for(int i = 0; i < nvertices-1; i++){
+	int i = 0;
+	int intree = 0;
+	while(intree != nvertices-1){
 		if(un.find(edg[i][0]) != un.find(edg[i][1])){
 				cout << "edge in the mst: " << edg[i][0] << edg[i][1] << edg[i][2] << '\n';
 				w += edg[i][2];
 				un.Union(edg[i][0], edg[i][1]);
+				intree++;
 		}
+		i++;
 	}
 	return w;
 }
