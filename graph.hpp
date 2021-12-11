@@ -8,6 +8,8 @@ using namespace std;
 /*
     GRAPH IMPLEMENTATIONS WITH FAMOUS ALGORITHMS ASOCIATED AND COMPLEMENT CLASSES;
     author: 
+	Roberto Kalinovskyy
+	email:
     roberto.kalinovskyy@gmail.com
 */
 
@@ -61,11 +63,16 @@ void BestPathResult::show(){
 class edgenode{
 	public:
         edgenode(int to, int w);
+		edgenode(int to, int w, int cap);
     private:
 		int y;
 		int weight;
 		edgenode *next;
+		//used for network flows algorithms
+		int capacity; //the max capacity of this edge; (different from the weight)
+		int flow; //the actual flow of the edge;
 friend class graph;
+friend class flownode;
 };
 
 edgenode::edgenode(int to, int w){
@@ -73,12 +80,19 @@ edgenode::edgenode(int to, int w){
 	weight = w;
 }
 
+edgenode::edgenode(int to, int w, int cap){
+	y = to;
+	weight = w;
+	capacity = cap;
+}
+
 
 class graph{
 	public:
         graph(int n, bool _directed); //the constructor / initialization function
         void addEdge(int from, int to, int weight); //the driver function for inserting an edge
-        void print(); //for printing the graph
+		void addEdge(int from, int to, int weight, int cap); //the driver function for inserting an edge
+		void print(); //for printing the graph
 		void dfs(int start); //the dfs traversal algorithm
 		void dijskra(int from); //the famous dijsktra algorithm for finding the best path from one node to all(in weighted graphs)
 		//function used in kruskal algorithm, return a vector of vectors, denoting the edges of the graph
@@ -87,15 +101,19 @@ class graph{
 		BestPathResult* bestPath(int target); //driver and entry function for the traveling salesman problem
 		void showInfo(); //show the information obtained in other algorithms to the prompt
         void fromPrompt(); //create a new graph with info from the prompt line (cmd)
+		void fromPromptFlows(); //create a new graph from prompt for network flow algorithms
 		void bfs(int start); //the bfs graph algorithm
 		void processEdgeAfter(edgenode *actual); //process an edge after the traversal of the edge in bfs and dfs
 		void processEdgeBefore(edgenode *actual); //process an edge before the traversal of the edge in the bfs and dfs
 		void unweightedPath(int from, int to);
+		int maximumFlowFulkerson(int from , int to); //find the maximum flow from one node to another;
+		int** toMatrix(); //converts the current adjancecy list to a matrix based graph
+		int** floydWarshall(); //floyd wharsall dp algorithm for computing all sortest paths
 	private:
         BestPathResult* _bestPath(int target, int start, bool *visited); //the actual logic of traveling salesman problem
         bool* newVisited(bool old[], int pos); //return a new visited array, used for traversing a new time int the _bestPath() function
 		bool allVisited(bool *visited); //return if a visited array is full (if is full is visited == true)
-        void _addEdge(int from, int to, int weight); //the actual logic for adding an edge
+        void _addEdge(int from, int to, int weight, bool flow, int cap=0); //the actual logic for adding an edge
 
         //the data that the graph is holding for its algorithms
         edgenode *edges[1000];
@@ -127,13 +145,23 @@ graph::graph(int n, bool _directed = true){ //ask the number of vertices for ini
 }
 
 void graph::addEdge(int from, int to, int weight){
-	_addEdge(from, to, weight);
+	_addEdge(from, to, weight, false);
 	if(directed == false)
-		_addEdge(to, from , weight);
+		_addEdge(to, from , weight, false);
 }
 
-void graph::_addEdge(int from, int to, int weight){
-	edgenode *p = new edgenode(to, weight);
+void graph::addEdge(int from, int to, int weight, int cap){
+	_addEdge(from, to, weight, true, cap);
+	if(directed == false)
+		_addEdge(to, from, weight, true, cap);
+}
+
+void graph::_addEdge(int from, int to, int weight, bool flow, int cap=0){
+	edgenode *p;
+	if(!flow)
+		p = new edgenode(to, weight);
+	else
+		p = new edgenode(to, weight, cap);
 	p->next = edges[from];
 	edges[from] = p;
 	nedges++;
@@ -362,6 +390,44 @@ BestPathResult* graph::_bestPath(int target, int start, bool* visited){
 	return result;
 }
 
+int** graph::toMatrix(){
+	int **resultGraph;
+	resultGraph = new int*[nvertices];
+	for(int i = 0 ; i < nvertices; i++){
+		resultGraph[i] = new int[nvertices];
+		for(int b = 0; b < nvertices; b++){
+			resultGraph[i][b] = -1;
+		}
+	}
+	edgenode *tmp;
+	for(int i = 0; i < nvertices; i++){
+		tmp = edges[i];
+		while(tmp != NULL){
+			resultGraph[i][tmp->y] = tmp->weight;
+		}
+	}
+	return resultGraph;
+}
+
+int** graph::floydWarshall(){
+	int **graph = toMatrix();
+	int **dist = toMatrix(); //initialize the result matrix as the same as the input matrix(the actual matrix)
+	int i, j, k;
+	for(k = 0; k < nvertices; k++){
+		for(i = 0; i < nvertices; i++){
+			for(j = 0; j < nvertices; j++){
+				if(dist[i][j] > (dist[i][k] + dist[k][j]) && dist[i][j] != -1 && dist[i][k] != -1){
+					dist[i][j] = dist[i][k] + dist[k][j];
+				}
+			}
+		}
+	}
+}
+
+int graph::maximumFlowFulkerson(int from, int to){
+	return 0;
+}
+
 void graph::showInfo(){
 	cout << "DISCOVERED\n";
 	for(int i = 0; i < nvertices; i++){
@@ -395,6 +461,16 @@ void graph::fromPrompt(){
 	while(n--){
 		int from, to , weight;
 		cin >> from >> to >> weight;
+		addEdge(from, to, weight);
+	}
+}
+
+void graph::fromPromptFlows(){
+	int n;
+	cin >> n;
+	while(n--){
+		int from, to , weight, cap;
+		cin >> from >> to >> weight >> cap;
 		addEdge(from, to, weight);
 	}
 }
