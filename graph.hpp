@@ -422,6 +422,7 @@ int** graph::floydWarshall(){
 			}
 		}
 	}
+	return dist;
 }
 
 int graph::maximumFlowFulkerson(int from, int to){
